@@ -621,6 +621,8 @@ if __name__ == "__main__":
                         help="Nunca sobrescreve o checkpoint da fase")
     parser.add_argument("--sem-banco", action="store_true",
                         help="Treina sem gravar no Supabase; resultados ficam so em runs/")
+    parser.add_argument("--do-zero", action="store_true",
+                        help="Ignora o checkpoint da fase anterior e parte de pesos aleatorios")
     args = parser.parse_args()
 
     import importlib
@@ -630,6 +632,9 @@ if __name__ == "__main__":
         cfg.num_geracoes = args.geracoes
     if args.seed is not None:
         cfg.seed = args.seed
+    if args.do_zero:
+        cfg.checkpoint_entrada = None
+        cfg.nome = f"{cfg.nome} (sem curriculo)"
 
     treinar(cfg, modo="visual" if args.visual else "headless",
             salvar_checkpoint=args.salvar, persistir=not args.sem_banco)

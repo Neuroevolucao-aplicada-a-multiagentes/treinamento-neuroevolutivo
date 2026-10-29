@@ -13,6 +13,10 @@ Ambientes:
 Uso:
     python src/avaliar_checkpoints.py melhor_rede_fase5.npz "runs/Fase_5_*2026-10-13*/melhor_rede.npz"
     python src/avaliar_checkpoints.py --cenarios 60 --ambientes corredores melhor_rede_fase5.npz
+    python src/avaliar_checkpoints.py melhor_rede_fase5.npz campos campos:2.0:0.4
+
+"campos" no lugar de um arquivo avalia o controlador de referencia por campos
+potenciais; "campos:G:A" fixa o ganho de repulsao G e o alcance A.
 
 A primeira rede da lista e a referencia das comparacoes pareadas.
 """
@@ -49,6 +53,9 @@ def _config(ambiente: str):
 
 
 def _rotulo(caminho: str) -> str:
+    if _eh_campos(caminho):
+        partes = caminho.split(":")
+        return "campos potenciais" if len(partes) == 1 else f"campos g={partes[1]} a={partes[2]}"
     pasta = os.path.dirname(os.path.abspath(caminho))
     config_txt = os.path.join(pasta, "config.txt")
     if os.path.basename(pasta).startswith("Fase_") and os.path.exists(config_txt):
@@ -60,16 +67,27 @@ def _rotulo(caminho: str) -> str:
     return os.path.splitext(os.path.basename(caminho))[0]
 
 
+def _eh_campos(caminho: str) -> bool:
+    return caminho.split(":")[0] == "campos"
+
+
+def _controlador(caminho: str):
+    if _eh_campos(caminho):
+        from baseline_campos_potenciais import CamposPotenciais
+        return CamposPotenciais(*(float(p) for p in caminho.split(":")[1:]))
+    from rede_transfer import carregar_rede_base
+    return carregar_rede_base(caminho, input_size=16)
+
+
 def _avaliar(tarefa: tuple[str, str, int, int]) -> dict:
     """Roda uma rede em n cenarios de um ambiente. Executa num processo proprio."""
     caminho, ambiente, n, semente_base = tarefa
     os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
     import pygame
-    from rede_transfer import carregar_rede_base
     from simulador import Agente, Ambiente, rodar_geracao
 
     cfg = _config(ambiente)
-    rede = carregar_rede_base(caminho, input_size=16)
+    rede = _controlador(caminho)
     por_cenario = []
     for k in range(n):
         amb = Ambiente(cfg, rng=random.Random(semente_base + k))
@@ -124,6 +142,9 @@ def _resumo(cenarios: list[dict]) -> dict:
 def _expandir(padroes: list[str]) -> list[str]:
     caminhos = []
     for padrao in padroes:
+        if _eh_campos(padrao):
+            caminhos.append(padrao)
+            continue
         achados = sorted(glob.glob(padrao)) or ([padrao] if os.path.exists(padrao) else [])
         if not achados:
             print(f"[avaliar] AVISO: nada encontrado para {padrao}")
@@ -176,7 +197,7 @@ def main() -> int:
                   f"[{r['ic_baixo'] * 100:5.1f}, {r['ic_alto'] * 100:5.1f}] "
                   f"{r['coleta'] * 100:6.1f}% {r['colisoes_media']:9.1f} {tempo:>10}   {comparacao}")
             linhas_csv.append({
-                "rede": _rotulo(rede), "arquivo": os.path.relpath(rede, _RAIZ),
+                "rede": _rotulo(rede), "arquivo": rede if _eh_campos(rede) else os.path.relpath(rede, _RAIZ),
                 "ambiente": ambiente, **r,
                 "so_rede_entregou": so_cand, "so_referencia_entregou": so_ref, "p_mcnemar": p,
             })
