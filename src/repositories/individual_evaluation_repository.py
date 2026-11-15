@@ -25,12 +25,7 @@ class IndividualEvaluationRepository:
     _UNSET = object()
 
     def __init__(self, client: Client | None = None) -> None:
-        """Initialize the repository with a Supabase client.
-
-        Args:
-            client: Optional Supabase client instance for dependency injection
-                in tests. When not provided, the shared project client is used.
-        """
+        """Initialize the repository with a Supabase client."""
 
         self._client = client if client is not None else get_supabase_client()
 
@@ -44,27 +39,7 @@ class IndividualEvaluationRepository:
         scenario_label: str | None = None,
         metrics: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Create an individual evaluation record and return the persisted row.
-
-        Args:
-            individual_id: Related individual UUID.
-            evaluation_index: Sequential evaluation index.
-            fitness: Fitness value for the evaluation.
-            success: Evaluation success flag.
-            scenario_label: Optional scenario label.
-            metrics: Optional metrics payload.
-
-        Returns:
-            The created evaluation row.
-
-        Raises:
-            ValueError: If required values are invalid or constraints are
-                violated.
-            TypeError: If UUID, numeric, boolean, text, or JSON payloads have an
-                invalid type.
-            IndividualEvaluationRepositoryError: If the operation fails or the
-                inserted row cannot be retrieved.
-        """
+        """Create an individual evaluation record and return the persisted row."""
 
         normalized_individual_id = self._normalize_uuid_like(individual_id, "individual_id")
         self._validate_required_int(evaluation_index, "evaluation_index", minimum=1)
@@ -112,19 +87,7 @@ class IndividualEvaluationRepository:
         return created
 
     def get_by_id(self, evaluation_id: UUID | str) -> dict[str, Any] | None:
-        """Fetch one individual evaluation by its UUID identifier.
-
-        Args:
-            evaluation_id: Evaluation UUID.
-
-        Returns:
-            The evaluation row when found, otherwise None.
-
-        Raises:
-            TypeError: If evaluation_id has an invalid type.
-            ValueError: If evaluation_id is empty or invalid.
-            IndividualEvaluationRepositoryError: If the read operation fails.
-        """
+        """Fetch one individual evaluation by its UUID identifier."""
 
         identifier = self._normalize_uuid_like(evaluation_id, "evaluation_id")
 
@@ -145,19 +108,7 @@ class IndividualEvaluationRepository:
         return self._first_or_none(response.data)
 
     def list_by_individual(self, individual_id: UUID | str) -> list[dict[str, Any]]:
-        """List evaluations associated with an individual.
-
-        Args:
-            individual_id: Individual UUID.
-
-        Returns:
-            A list of evaluation rows ordered by evaluation index.
-
-        Raises:
-            TypeError: If individual_id has an invalid type.
-            ValueError: If individual_id is empty or invalid.
-            IndividualEvaluationRepositoryError: If the read operation fails.
-        """
+        """List evaluations associated with an individual."""
 
         identifier = self._normalize_uuid_like(individual_id, "individual_id")
 
@@ -179,14 +130,7 @@ class IndividualEvaluationRepository:
         return [row for row in rows if isinstance(row, dict)]
 
     def list_all(self) -> list[dict[str, Any]]:
-        """List all individual evaluations in a deterministic order.
-
-        Returns:
-            A list of evaluation rows ordered by individual and evaluation index.
-
-        Raises:
-            IndividualEvaluationRepositoryError: If the read operation fails.
-        """
+        """List all individual evaluations in a deterministic order."""
 
         try:
             response = (
@@ -217,25 +161,7 @@ class IndividualEvaluationRepository:
         success: bool | object = _UNSET,
         metrics: Mapping[str, Any] | None | object = _UNSET,
     ) -> dict[str, Any] | None:
-        """Update an individual evaluation and return the updated row.
-
-        Args:
-            evaluation_id: Evaluation UUID.
-            individual_id: Updated individual UUID.
-            evaluation_index: Updated evaluation index.
-            scenario_label: Updated scenario label.
-            fitness: Updated fitness value.
-            success: Updated success flag.
-            metrics: Updated metrics payload.
-
-        Returns:
-            The updated evaluation row when found, otherwise None.
-
-        Raises:
-            ValueError: If no update fields are provided.
-            TypeError: If a provided field has an invalid type.
-            IndividualEvaluationRepositoryError: If the update operation fails.
-        """
+        """Update an individual evaluation and return the updated row."""
 
         identifier = self._normalize_uuid_like(evaluation_id, "evaluation_id")
         payload: dict[str, Any] = {}
@@ -280,19 +206,7 @@ class IndividualEvaluationRepository:
         return self.get_by_id(identifier)
 
     def delete(self, evaluation_id: UUID | str) -> bool:
-        """Delete an individual evaluation by UUID.
-
-        Args:
-            evaluation_id: Evaluation UUID.
-
-        Returns:
-            True when a record existed and was deleted, otherwise False.
-
-        Raises:
-            TypeError: If evaluation_id has an invalid type.
-            ValueError: If evaluation_id is empty or invalid.
-            IndividualEvaluationRepositoryError: If the delete operation fails.
-        """
+        """Delete an individual evaluation by UUID."""
 
         identifier = self._normalize_uuid_like(evaluation_id, "evaluation_id")
         existing = self.get_by_id(identifier)

@@ -26,12 +26,7 @@ class CheckpointRepository:
     _CHECKPOINT_TYPES = {"best", "elite", "manual"}
 
     def __init__(self, client: Client | None = None) -> None:
-        """Initialize the repository with a Supabase client.
-
-        Args:
-            client: Optional Supabase client instance for dependency injection
-                in tests. When not provided, the shared project client is used.
-        """
+        """Initialize the repository with a Supabase client."""
 
         self._client = client if client is not None else get_supabase_client()
 
@@ -47,29 +42,7 @@ class CheckpointRepository:
         fitness: Numeric | None = None,
         metrics: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Create a checkpoint record and return the persisted row.
-
-        Args:
-            run_id: Related run UUID.
-            generation_id: Related generation UUID.
-            storage_path: Path where the checkpoint artifact is stored.
-            checkpoint_type: Checkpoint type constrained by the database.
-            individual_id: Optional related individual UUID.
-            storage_bucket: Optional storage bucket name.
-            fitness: Optional fitness value.
-            metrics: Optional metrics payload.
-
-        Returns:
-            The created checkpoint row.
-
-        Raises:
-            ValueError: If required values are invalid or constraints are
-                violated.
-            TypeError: If UUID, text, numeric, or JSON payloads have an invalid
-                type.
-            CheckpointRepositoryError: If the operation fails or the inserted
-                row cannot be retrieved.
-        """
+        """Create a checkpoint record and return the persisted row."""
 
         normalized_run_id = self._normalize_uuid_like(run_id, "run_id")
         normalized_generation_id = self._normalize_uuid_like(generation_id, "generation_id")
@@ -123,19 +96,7 @@ class CheckpointRepository:
         return created
 
     def get_by_id(self, checkpoint_id: UUID | str) -> dict[str, Any] | None:
-        """Fetch one checkpoint by its UUID identifier.
-
-        Args:
-            checkpoint_id: Checkpoint UUID.
-
-        Returns:
-            The checkpoint row when found, otherwise None.
-
-        Raises:
-            TypeError: If checkpoint_id has an invalid type.
-            ValueError: If checkpoint_id is empty or invalid.
-            CheckpointRepositoryError: If the read operation fails.
-        """
+        """Fetch one checkpoint by its UUID identifier."""
 
         identifier = self._normalize_uuid_like(checkpoint_id, "checkpoint_id")
 
@@ -154,19 +115,7 @@ class CheckpointRepository:
         return self._first_or_none(response.data)
 
     def list_by_run(self, run_id: UUID | str) -> list[dict[str, Any]]:
-        """List checkpoints associated with a run.
-
-        Args:
-            run_id: Run UUID.
-
-        Returns:
-            A list of checkpoint rows ordered deterministically.
-
-        Raises:
-            TypeError: If run_id has an invalid type.
-            ValueError: If run_id is empty or invalid.
-            CheckpointRepositoryError: If the read operation fails.
-        """
+        """List checkpoints associated with a run."""
 
         identifier = self._normalize_uuid_like(run_id, "run_id")
 
@@ -189,19 +138,7 @@ class CheckpointRepository:
         return [row for row in rows if isinstance(row, dict)]
 
     def list_by_generation(self, generation_id: UUID | str) -> list[dict[str, Any]]:
-        """List checkpoints associated with a generation.
-
-        Args:
-            generation_id: Generation UUID.
-
-        Returns:
-            A list of checkpoint rows for the generation.
-
-        Raises:
-            TypeError: If generation_id has an invalid type.
-            ValueError: If generation_id is empty or invalid.
-            CheckpointRepositoryError: If the read operation fails.
-        """
+        """List checkpoints associated with a generation."""
 
         identifier = self._normalize_uuid_like(generation_id, "generation_id")
 
@@ -225,14 +162,7 @@ class CheckpointRepository:
         return [row for row in rows if isinstance(row, dict)]
 
     def list_all(self) -> list[dict[str, Any]]:
-        """List all checkpoints in a deterministic order.
-
-        Returns:
-            A list of checkpoint rows.
-
-        Raises:
-            CheckpointRepositoryError: If the read operation fails.
-        """
+        """List all checkpoints in a deterministic order."""
 
         try:
             response = (
@@ -265,27 +195,7 @@ class CheckpointRepository:
         fitness: Numeric | None | object = _UNSET,
         metrics: Mapping[str, Any] | None | object = _UNSET,
     ) -> dict[str, Any] | None:
-        """Update a checkpoint and return the updated row.
-
-        Args:
-            checkpoint_id: Checkpoint UUID.
-            run_id: Updated run UUID.
-            generation_id: Updated generation UUID.
-            individual_id: Updated individual UUID.
-            checkpoint_type: Updated checkpoint type.
-            storage_path: Updated storage path.
-            storage_bucket: Updated storage bucket.
-            fitness: Updated fitness value.
-            metrics: Updated metrics payload.
-
-        Returns:
-            The updated checkpoint row when found, otherwise None.
-
-        Raises:
-            ValueError: If no update fields are provided.
-            TypeError: If a provided field has an invalid type.
-            CheckpointRepositoryError: If the update operation fails.
-        """
+        """Update a checkpoint and return the updated row."""
 
         identifier = self._normalize_uuid_like(checkpoint_id, "checkpoint_id")
         payload: dict[str, Any] = {}
@@ -338,19 +248,7 @@ class CheckpointRepository:
         return self.get_by_id(identifier)
 
     def delete(self, checkpoint_id: UUID | str) -> bool:
-        """Delete a checkpoint by UUID.
-
-        Args:
-            checkpoint_id: Checkpoint UUID.
-
-        Returns:
-            True when a record existed and was deleted, otherwise False.
-
-        Raises:
-            TypeError: If checkpoint_id has an invalid type.
-            ValueError: If checkpoint_id is empty or invalid.
-            CheckpointRepositoryError: If the delete operation fails.
-        """
+        """Delete a checkpoint by UUID."""
 
         identifier = self._normalize_uuid_like(checkpoint_id, "checkpoint_id")
         existing = self.get_by_id(identifier)

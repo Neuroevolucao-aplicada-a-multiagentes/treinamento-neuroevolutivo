@@ -25,12 +25,7 @@ class IndividualRepository:
     _UNSET = object()
 
     def __init__(self, client: Client | None = None) -> None:
-        """Initialize the repository with a Supabase client.
-
-        Args:
-            client: Optional Supabase client instance for dependency injection
-                in tests. When not provided, the shared project client is used.
-        """
+        """Initialize the repository with a Supabase client."""
 
         self._client = client if client is not None else get_supabase_client()
 
@@ -47,30 +42,7 @@ class IndividualRepository:
         genome: Mapping[str, Any] | None = None,
         metadata: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Create an Individual record and return the persisted row.
-
-        Args:
-            generation_id: Related generation UUID.
-            individual_index: Position of the individual within the population.
-            parent_1_id: Optional first parent UUID.
-            parent_2_id: Optional second parent UUID.
-            fitness: Optional fitness value.
-            rank: Optional rank value.
-            is_elite: Whether the individual is elite.
-            genome: Optional genome payload.
-            metadata: Optional metadata payload.
-
-        Returns:
-            The created individual row.
-
-        Raises:
-            ValueError: If required values are invalid or constraints are
-                violated.
-            TypeError: If UUID, numeric, boolean, or JSON payloads have an
-                invalid type.
-            IndividualRepositoryError: If the operation fails or the inserted
-                row cannot be retrieved.
-        """
+        """Create an Individual record and return the persisted row."""
 
         normalized_generation_id = self._normalize_uuid_like(generation_id, "generation_id")
         normalized_parent_1_id = self._normalize_nullable_uuid_like(parent_1_id, "parent_1_id")
@@ -120,17 +92,7 @@ class IndividualRepository:
         return created
 
     def get_by_id(self, individual_id: UUID | str) -> dict[str, Any] | None:
-        """Fetch one Individual by its UUID identifier.
-
-        Args:
-            individual_id: Individual UUID.
-
-        Returns:
-            The individual row when found, otherwise None.
-
-        Raises:
-            IndividualRepositoryError: If the read operation fails.
-        """
+        """Fetch one Individual by its UUID identifier."""
 
         identifier = self._normalize_uuid_like(individual_id, "individual_id")
 
@@ -149,19 +111,7 @@ class IndividualRepository:
         return self._first_or_none(response.data)
 
     def list_by_generation(self, generation_id: UUID | str) -> list[dict[str, Any]]:
-        """List Individuals associated with a generation.
-
-        Args:
-            generation_id: Generation UUID.
-
-        Returns:
-            A list of individual rows ordered by individual_index.
-
-        Raises:
-            TypeError: If generation_id is not a UUID or str.
-            ValueError: If generation_id is empty, whitespace, or invalid.
-            IndividualRepositoryError: If the read operation fails.
-        """
+        """List Individuals associated with a generation."""
 
         identifier = self._normalize_uuid_like(generation_id, "generation_id")
 
@@ -181,14 +131,7 @@ class IndividualRepository:
         return [row for row in rows if isinstance(row, dict)]
 
     def list_all(self) -> list[dict[str, Any]]:
-        """List all Individual rows ordered by creation timestamp.
-
-        Returns:
-            A list of individual rows.
-
-        Raises:
-            IndividualRepositoryError: If the read operation fails.
-        """
+        """List all Individual rows ordered by creation timestamp."""
 
         try:
             response = (
@@ -218,28 +161,7 @@ class IndividualRepository:
         genome: Mapping[str, Any] | None | object = _UNSET,
         metadata: Mapping[str, Any] | None | object = _UNSET,
     ) -> dict[str, Any] | None:
-        """Update an Individual and return the updated row.
-
-        Args:
-            individual_id: Individual UUID.
-            generation_id: Updated generation UUID.
-            individual_index: Updated position within the population.
-            parent_1_id: Updated first parent UUID.
-            parent_2_id: Updated second parent UUID.
-            fitness: Updated fitness value.
-            rank: Updated rank value.
-            is_elite: Updated elite flag.
-            genome: Updated genome payload.
-            metadata: Updated metadata payload.
-
-        Returns:
-            The updated individual row when found, otherwise None.
-
-        Raises:
-            ValueError: If no update fields are provided.
-            TypeError: If a provided field has an invalid type.
-            IndividualRepositoryError: If the update operation fails.
-        """
+        """Update an Individual and return the updated row."""
 
         identifier = self._normalize_uuid_like(individual_id, "individual_id")
         payload: dict[str, Any] = {}
@@ -289,19 +211,7 @@ class IndividualRepository:
         return self.get_by_id(identifier)
 
     def delete(self, individual_id: UUID | str) -> bool:
-        """Delete an Individual by UUID.
-
-        Args:
-            individual_id: Individual UUID.
-
-        Returns:
-            True when a record existed and was deleted, otherwise False.
-
-        Raises:
-            TypeError: If individual_id is not a UUID or str.
-            ValueError: If individual_id is empty, whitespace, or invalid.
-            IndividualRepositoryError: If the delete operation fails.
-        """
+        """Delete an Individual by UUID."""
 
         identifier = self._normalize_uuid_like(individual_id, "individual_id")
 

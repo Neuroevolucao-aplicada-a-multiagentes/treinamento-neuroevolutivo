@@ -87,9 +87,7 @@ def _persistir_individuos_avaliados(
     persistence_service: TrainingPersistenceService,
     n_elite: int = 0,
 ) -> dict[int, str]:
-    # O ranking e calculado SEM reordenar a lista: individual_index precisa
-    # continuar sendo a posicao original, que o chamador usa para localizar o
-    # melhor individuo ao gravar o checkpoint.
+    # Ranking sem reordenar a lista: individual_index e a posicao original.
     ordem = sorted(range(len(agentes)), key=lambda i: agentes[i].fitness, reverse=True)
     rank_por_indice = {i: pos + 1 for pos, i in enumerate(ordem)}
     elites = set(ordem[:n_elite])
@@ -104,10 +102,7 @@ def _persistir_individuos_avaliados(
             fitness=float(agente.fitness),
             rank=rank_por_indice[i0],
             is_elite=eh_elite,
-            # O genoma sao 1106 floats (~22 KB em JSON). Gravar so o da elite
-            # corta ~87% do trafego por geracao sem perder nada: o melhor
-            # individuo esta sempre na elite, e e dele que o checkpoint - e o
-            # Godot, por consequencia - le os pesos.
+            # Grava o genoma so da elite, onde esta o melhor individuo usado no checkpoint.
             genome=_genome_json(agente) if eh_elite else None,
             metadata=_metadata_individual(agente),
         )
@@ -157,9 +152,7 @@ def _avaliar_em_cenarios(agentes, ambiente: Ambiente, cfg: CenarioConfig, dt: fl
         return rodar_geracao(agentes, ambiente, cfg, dt_fixo=dt)
 
     fits_acum = np.zeros(len(agentes), dtype=np.float64)
-    # Entregas, coletas, colisoes e soma dos tempos de entrega de cada agente.
-    # A selecao ordena por eles antes da aptidao; sem somar, valeriam so os do
-    # ultimo cenario, e os demais cenarios serviriam apenas de desempate.
+    # Placar de selecao somado sobre todos os cenarios da geracao.
     contagens = np.zeros((len(agentes), 4), dtype=np.float64)
     resumos = []
     for _ in range(cfg.cenarios_por_geracao):
@@ -198,9 +191,7 @@ def treinar(cfg: CenarioConfig, modo: str = "headless", salvar_checkpoint=None,
             persistir: bool = True):
     assert modo in ("headless", "visual")
 
-    # Uma run curta (teste rapido) nao pode sobrescrever o checkpoint da fase:
-    # ele nao esta versionado e representa dias de treino. Com None, decide pelo
-    # numero de geracoes; --salvar / --nao-salvar forcam explicitamente.
+    # Runs curtas nao sobrescrevem o checkpoint da fase; --salvar e --nao-salvar forcam.
     if salvar_checkpoint is None:
         salvar_checkpoint = cfg.num_geracoes >= MIN_GERACOES_PARA_SALVAR
     rng = _setup_rng(cfg.seed)

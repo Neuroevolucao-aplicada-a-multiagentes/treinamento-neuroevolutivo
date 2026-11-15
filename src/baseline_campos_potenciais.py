@@ -1,14 +1,10 @@
 """Controlador de referencia por campos potenciais (KHATIB, 1986).
 
-Recebe exatamente o vetor de 16 entradas que a rede recebe e devolve o mesmo
-vetor de velocidade, de modo que a comparacao com a rede evoluida isola o
-controlador: mesma percepcao, mesmo simulador, mesmos cenarios.
-
-O alvo atrai com forca unitaria. Cada raio que encontra um obstaculo a menos
-de uma fracao `alcance` do alcance do sensor repele, com intensidade que cresce
-com o quadrado da proximidade. Os raios saem da direcao de movimento, entao o
-controlador guarda o ultimo comando para saber para onde aponta o primeiro raio,
-como o simulador faz ao emiti-los.
+Recebe o mesmo vetor de 16 entradas da rede e devolve o mesmo vetor de
+velocidade. O alvo atrai com forca unitaria, e cada raio que encontra um
+obstaculo dentro da fracao `alcance` do sensor repele com forca que cresce com
+o quadrado da proximidade. Como os raios saem da direcao de movimento, o
+controlador guarda o ultimo comando.
 """
 
 from __future__ import annotations

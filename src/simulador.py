@@ -63,17 +63,11 @@ class CenarioConfig:
     bonus_proximidade_max: float = 1500.0
     pool_selecao_fracao: float = 0.5
 
-    # Com False, o bonus de proximidade usa a posicao FINAL do agente. Isso
-    # premia quem termina encostado na parede mais proxima do alvo, que e o
-    # modo de falha em topologia de corredor. Com True, usa a melhor
-    # aproximacao ja alcancada na etapa atual: mantem o gradiente para quem
-    # nao entregou sem recompensar ficar parado no fim.
+    # Com True, o bonus de proximidade usa a melhor aproximacao da etapa,
+    # e nao a posicao final do agente.
     proximidade_por_melhor_aproximacao: bool = False
 
-    # Numero de layouts pre-gerados e reusados em TODAS as geracoes. Com 0,
-    # cada geracao sorteia layouts novos, o que torna a aptidao nao
-    # estacionaria. Deve ser igual a cenarios_por_geracao para que toda
-    # geracao seja avaliada exatamente no mesmo conjunto.
+    # Layouts pre-gerados e reusados em todas as geracoes (0 = sorteia a cada geracao).
     layouts_fixos: int = 0
 
     num_obstaculos: int = 3
@@ -81,23 +75,15 @@ class CenarioConfig:
     offset_obstaculo_perpendicular: int = 40
     num_obstaculos_extra_livres: int = 0
 
-    # Penalidade aplicada a cada segundo em que o agente permanece colidindo,
-    # somada a penalidade_colisao (que e por evento). Sem ela a aptidao nao
-    # distingue quem bate e segue de quem bate e fica preso, e a rede nunca
-    # desenvolve comportamento de se desvencilhar.
+    # Custo por segundo em contato, alem do custo por colisao.
     penalidade_colisao_continua: float = 0.0
 
-    # Folga dos obstaculos. A colisao so custa quando acontece, entao passar
-    # rente a um obstaculo vale o mesmo que passar longe dele. Com
-    # folga_minima > 0 (fracao do alcance do sensor), cada passo com o raio
-    # mais curto abaixo dela acumula exposicao, que conta na selecao como
-    # custo_folga segundos a mais de ciclo por segundo de contato pleno.
+    # Folga dos obstaculos, em fracao do alcance do sensor. O tempo com o raio mais
+    # curto abaixo dela conta na selecao como custo_folga segundos de ciclo.
     folga_minima: float = 0.0
     custo_folga: float = 0.0
 
-    # Layout em corredores: fileiras paralelas ao eixo x, separadas por
-    # corredores e cortadas por corredores transversais. O gerador de
-    # retangulos isolados nao produz essa topologia, que e a do armazem real.
+    # Fileiras paralelas ao eixo x, cortadas por corredores transversais.
     usa_layout_corredores: bool = False
     num_fileiras: int = 2
     espessura_fileira: int = 60
@@ -143,24 +129,11 @@ def gerar_obstaculos_no_caminho(segmentos: List[Tuple[pygame.Vector2, pygame.Vec
                                 rng: random.Random,
                                 exclude_zones: List[Tuple[int, int, int]] = None,
                                 offset_perp: int = 40) -> List[pygame.Rect]:
-    """Posiciona obstaculos PERTO do caminho start->pacote->entrega para forcar desvio.
+    """Posiciona obstaculos perto do caminho start->pacote->entrega para forcar desvio.
 
-    Os n_total obstaculos sao repartidos entre os segmentos (origem, destino) e
-    colocados ao longo deles, com deslocamento perpendicular aleatorio
-    (+/- offset_perp px) - o agente NAO consegue ir reto, mas sempre tem espaco
-    para contornar por um dos lados.
-
-    Cada obstaculo e sorteado dentro da parte do segmento que fica fora das zonas
-    de exclusao das pontas. Posicoes fixas perto das pontas eram quase sempre
-    rejeitadas: a fase 4 pedia 4 obstaculos e recebia menos de 1 em media. O que
-    nao couber no seu segmento ainda e tentado no outro.
-
-    Argumentos:
-        segmentos: lista de pares (origem, destino) que definem o caminho ideal.
-        n_total: quantos obstaculos no caminho todo.
-        rng: gerador de aleatorios para reprodutibilidade.
-        exclude_zones: lista de (cx, cy, raio) que nao podem ter obstaculo em cima.
-        offset_perp: deslocamento maximo perpendicular ao segmento (px).
+    Os obstaculos sao repartidos entre os segmentos, com deslocamento
+    perpendicular de ate offset_perp px e fora das zonas de exclusao das pontas.
+    O que nao couber num segmento e tentado no outro.
     """
     obstaculos: List[pygame.Rect] = []
     exclude_zones = exclude_zones or []
@@ -248,14 +221,8 @@ def gerar_layout_corredores(rng: random.Random,
                             margem: int = 60) -> List[pygame.Rect]:
     """Fileiras paralelas ao eixo x, cortadas por corredores transversais.
 
-    Reproduz a topologia de um armazem: paredes longas com aberturas, em vez
-    dos retangulos isolados em espaco aberto que gerar_obstaculos_aleatorios
-    produz. E uma topologia diferente, nao apenas uma densidade diferente:
-    com paredes longas, alcancar um alvo do outro lado exige afastar-se dele
-    temporariamente para chegar a abertura.
-
-    O numero de fileiras e reduzido automaticamente se os corredores nao
-    couberem com a largura minima exigida.
+    O numero de fileiras e reduzido se os corredores nao couberem com a largura
+    minima.
     """
     altura_util = ALTURA - 2 * margem
 
@@ -295,11 +262,7 @@ def sortear_ponto_livre(rng: random.Random, obstaculos: List[pygame.Rect],
                         margem_obstaculo: int = 55,
                         margem_borda: int = 50,
                         tentativas: int = 300) -> Optional[pygame.Vector2]:
-    """Sorteia um ponto nos corredores, longe o bastante de qualquer fileira.
-
-    A margem padrao vem do contrato do ambiente: com raio de coleta 20, o
-    alvo precisa de folga para o agente chegar sem raspar no obstaculo.
-    """
+    """Sorteia um ponto nos corredores, longe o bastante de qualquer fileira."""
     for _ in range(tentativas):
         p = _vec(rng.randint(margem_borda, LARGURA - margem_borda),
                  rng.randint(margem_borda, ALTURA - margem_borda))
@@ -406,11 +369,9 @@ class Ambiente:
             self.robos_moveis.append(RoboMovel(p1, p2, velocidade=self.rng.uniform(40, 90)))
 
     def _criar_layout_corredores(self, rng: random.Random) -> dict:
-        """Gera UM layout completo: fileiras, start, pacote, entrega e robos.
+        """Gera um layout completo: fileiras, start, pacote, entrega e robos.
 
-        As fileiras vem PRIMEIRO e so entao os pontos sao sorteados nos
-        corredores livres. A ordem inversa colocaria alvos dentro das estantes,
-        que foi o bug de spawn ja diagnosticado no ambiente visual.
+        As fileiras sao criadas antes, e os pontos sao sorteados so nos corredores.
         """
         cfg = self.config
 
@@ -434,9 +395,7 @@ class Ambiente:
             return None
 
         start = sortear() or _vec(*cfg.start_fixo)
-        # Exige que o pacote fique longe do start e a entrega longe do pacote:
-        # e o que forca o agente a atravessar corredores em vez de resolver
-        # tudo dentro do mesmo trecho.
+        # Pacote longe do start e entrega longe do pacote, para obrigar a atravessar corredores.
         pacote = sortear(start, 280.0) or _vec(*cfg.pacote_fixo)
         entrega = pacote if cfg.objetivo_simples else (
             sortear(pacote, 280.0) or _vec(*cfg.entrega_fixa))
@@ -451,8 +410,7 @@ class Ambiente:
                 "entrega": entrega, "robos": robos}
 
     def _aplicar_layout(self, layout: dict):
-        # Copia os vetores: o agente move self.start_pos por referencia se
-        # nao houver copia, e o layout do pool seria corrompido entre usos.
+        # Copia: o agente altera start_pos por referencia.
         self.obstaculos = [pygame.Rect(r) for r in layout["obstaculos"]]
         self.start_pos = pygame.Vector2(layout["start"])
         self.pacote_pos = pygame.Vector2(layout["pacote"])
@@ -467,11 +425,7 @@ class Ambiente:
             self._aplicar_layout(self._criar_layout_corredores(self.rng))
             return
 
-        # Conjunto FIXO de layouts, reusado em todas as geracoes. Sorteando a
-        # cada geracao, a paisagem de aptidao fica nao estacionaria: a elite
-        # escolhida numa geracao enfrenta um problema diferente na seguinte, e
-        # a selecao acaba perseguindo sorteio de cenario em vez de competencia.
-        # Medido: 18,8 pp de desvio na taxa de entrega entre geracoes vizinhas.
+        # Layouts fixos, reusados em todas as geracoes.
         if self._pool_layouts is None:
             semente = (cfg.seed if cfg.seed is not None else 0) + 99991
             rng_pool = random.Random(semente)
@@ -661,9 +615,7 @@ class Agente:
             self.distancia_percorrida += deslocamento.length()
             self.em_colisao = False
         else:
-            # Penalidade por TEMPO em contato, alem da penalidade por evento.
-            # Sem ela, ficar preso custa o mesmo que raspar e seguir, e a
-            # evolucao nao tem gradiente para aprender a se desvencilhar.
+            # Custo por segundo em contato, alem do custo por colisao.
             self.fitness -= cfg.penalidade_colisao_continua * dt
             if not self.em_colisao:
                 self.colisoes += 1

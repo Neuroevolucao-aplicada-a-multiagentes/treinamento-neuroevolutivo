@@ -1,15 +1,8 @@
-"""Registra no banco um checkpoint treinado antes da persistencia existir.
+"""Registra no banco um checkpoint treinado antes da camada de persistencia.
 
-As fases 1 a 5 foram treinadas em maio, antes da camada de persistencia entrar
-na main, e por isso so existem como arquivos .npz. Este script cria para uma
-delas o mesmo conjunto de registros que um treino atual criaria: experimento,
-run, snapshot da configuracao, as geracoes com suas metricas, o melhor
-individuo com o genoma e o checkpoint best. A partir dai o exportador do Godot
-le essa fase do banco como qualquer outra.
-
-A procedencia e verificada, nao presumida: o .npz da fase precisa ser identico,
-byte a byte, ao melhor_rede.npz da pasta de run indicada, e e do metricas.csv
-dessa pasta que saem a aptidao e a geracao do melhor individuo.
+Cria os mesmos registros de um treino atual: experimento, run, configuracao,
+geracoes, melhor individuo e checkpoint. O .npz precisa ser identico ao
+melhor_rede.npz da pasta de run indicada, cujo metricas.csv fornece a aptidao.
 
 Uso:
     python src/registrar_checkpoint.py --fase 5 --run-dir "runs/Fase_5_-_..."

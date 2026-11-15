@@ -22,12 +22,7 @@ class RunRepository:
     _UNSET = object()
 
     def __init__(self, client: Client | None = None) -> None:
-        """Initialize the repository with a Supabase client.
-
-        Args:
-            client: Optional Supabase client instance for dependency injection
-                in tests. When not provided, the shared project client is used.
-        """
+        """Initialize the repository with a Supabase client."""
 
         self._client = client if client is not None else get_supabase_client()
 
@@ -44,28 +39,7 @@ class RunRepository:
         summary_metrics: Mapping[str, Any] | None = None,
         metadata: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Create a Run record and return the persisted row.
-
-        Args:
-            experiment_id: Related experiment UUID.
-            phase_code: Code for the training phase.
-            run_label: Optional run label.
-            seed: Optional deterministic seed.
-            status: Initial run status.
-            started_at: Optional run start timestamp.
-            finished_at: Optional run end timestamp.
-            summary_metrics: Optional summary metrics payload.
-            metadata: Optional metadata payload.
-
-        Returns:
-            The created run row.
-
-        Raises:
-            RunRepositoryError: If the operation fails or the inserted row
-                cannot be retrieved.
-            ValueError: If phase_code or status is empty/whitespace.
-            TypeError: If seed has an invalid type.
-        """
+        """Create a Run record and return the persisted row."""
 
         normalized_phase_code = phase_code.strip()
         if not normalized_phase_code:
@@ -114,17 +88,7 @@ class RunRepository:
         return created
 
     def get_by_id(self, run_id: UUID | str) -> dict[str, Any] | None:
-        """Fetch one Run by its UUID identifier.
-
-        Args:
-            run_id: Run UUID.
-
-        Returns:
-            The run row when found, otherwise None.
-
-        Raises:
-            RunRepositoryError: If the read operation fails.
-        """
+        """Fetch one Run by its UUID identifier."""
 
         identifier = str(run_id)
 
@@ -143,17 +107,7 @@ class RunRepository:
         return self._first_or_none(response.data)
 
     def list_by_experiment(self, experiment_id: UUID | str) -> list[dict[str, Any]]:
-        """List Run rows associated with an experiment.
-
-        Args:
-            experiment_id: Experiment UUID.
-
-        Returns:
-            A list of run rows ordered by creation timestamp.
-
-        Raises:
-            RunRepositoryError: If the read operation fails.
-        """
+        """List Run rows associated with an experiment."""
 
         try:
             response = (
@@ -171,14 +125,7 @@ class RunRepository:
         return [row for row in rows if isinstance(row, dict)]
 
     def list_all(self) -> list[dict[str, Any]]:
-        """List all Run rows ordered by creation timestamp.
-
-        Returns:
-            A list of run rows.
-
-        Raises:
-            RunRepositoryError: If the read operation fails.
-        """
+        """List all Run rows ordered by creation timestamp."""
 
         try:
             response = (
@@ -208,28 +155,7 @@ class RunRepository:
         summary_metrics: Mapping[str, Any] | None | object = _UNSET,
         metadata: Mapping[str, Any] | None | object = _UNSET,
     ) -> dict[str, Any] | None:
-        """Update a Run and return the updated row.
-
-        Args:
-            run_id: Run UUID.
-            experiment_id: Updated experiment UUID.
-            phase_code: Updated phase code.
-            run_label: Updated run label.
-            seed: Updated seed.
-            status: Updated status.
-            started_at: Updated start timestamp.
-            finished_at: Updated finish timestamp.
-            summary_metrics: Updated summary metrics.
-            metadata: Updated metadata.
-
-        Returns:
-            The updated run row when found, otherwise None.
-
-        Raises:
-            ValueError: If no update fields are provided.
-            TypeError: If a provided typed field has an invalid type.
-            RunRepositoryError: If the update operation fails.
-        """
+        """Update a Run and return the updated row."""
 
         identifier = str(run_id)
         payload: dict[str, Any] = {}
@@ -299,17 +225,7 @@ class RunRepository:
         return self.get_by_id(identifier)
 
     def delete(self, run_id: UUID | str) -> bool:
-        """Delete a Run by UUID.
-
-        Args:
-            run_id: Run UUID.
-
-        Returns:
-            True when a record existed and was deleted, otherwise False.
-
-        Raises:
-            RunRepositoryError: If the delete operation fails.
-        """
+        """Delete a Run by UUID."""
 
         try:
             identifier = str(run_id)

@@ -1,9 +1,4 @@
-"""Fase 3 — coleta+entrega aleatorios com obstaculos POSICIONADOS NO CAMINHO.
-
-Pacote e entrega aparecem em pontos aleatorios a cada cenario.
-Obstaculos sao posicionados perto da linha start->pacote->entrega,
-forcando o agente a aprender a desviar (nao consegue ir reto).
-"""
+"""Fase 3: coleta e entrega com obstaculos posicionados no caminho."""
 from simulador import CenarioConfig
 
 CONFIG = CenarioConfig(

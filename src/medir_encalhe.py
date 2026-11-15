@@ -1,11 +1,8 @@
 """Mede, em operacao continua, se uma rede sai sozinha de um contato.
 
-Reproduz no simulador 2D a situacao do armazem 3D: varios robos operando sem
-parar, sem eliminacao por colisao, cada um recebendo uma tarefa nova ao
-entregar. Cada rede roda com e sem a camada de recuperacao, portada do 3D
-(scripts/ia/agente_ia.gd): quem passa 0,5 s sem avancar desliza 0,6 s ao longo
-da parede, no sentido que aproxima do alvo. Se uma rede rende sem a camada o
-mesmo que com ela, a camada deixou de ser necessaria.
+Varios robos operam sem parar e sem eliminacao, e cada um recebe uma tarefa
+nova ao entregar. Cada rede roda com e sem a camada de recuperacao do armazem
+3D (scripts/ia/agente_ia.gd).
 
 Uso:
     python src/medir_encalhe.py melhor_rede_fase5.npz "runs/*G_contato*/melhor_rede.npz"

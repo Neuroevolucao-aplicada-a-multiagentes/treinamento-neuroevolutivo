@@ -1,8 +1,4 @@
-"""Supabase connection management for the project.
-
-This module exposes a lazily initialized, singleton Supabase client that can
-be reused across repositories and services.
-"""
+"""Supabase connection management for the project."""
 
 from __future__ import annotations
 
@@ -22,25 +18,13 @@ _client_lock = Lock()
 
 
 def _load_environment() -> None:
-	"""Load environment variables from .env into process environment.
-
-	The default behavior of python-dotenv is preserved, so existing environment
-	variables are not overwritten.
-	"""
+	"""Load environment variables from .env into process environment."""
 
 	load_dotenv()
 
 
 def _get_supabase_credentials() -> tuple[str, str]:
-	"""Read and validate Supabase credentials from environment variables.
-
-	Returns:
-		A tuple containing SUPABASE_URL and SUPABASE_KEY.
-
-	Raises:
-		SupabaseConfigurationError: If one or both required variables are
-			missing.
-	"""
+	"""Read and validate Supabase credentials from environment variables."""
 
 	supabase_url = (os.getenv("SUPABASE_URL") or "").strip()
 	supabase_key = (os.getenv("SUPABASE_KEY") or "").strip()
@@ -55,18 +39,7 @@ def _get_supabase_credentials() -> tuple[str, str]:
 
 
 def get_supabase_client() -> Client:
-	"""Return a shared Supabase client instance.
-
-	The client is created only on first access (lazy initialization) and then
-	cached for reuse, ensuring a singleton-like behavior across the project.
-
-	Returns:
-		A configured Supabase client.
-
-	Raises:
-		SupabaseConfigurationError: If required environment variables are not
-			configured.
-	"""
+	"""Return a shared Supabase client instance."""
 
 	global _supabase_client
 
@@ -90,10 +63,7 @@ def get_supabase_client() -> Client:
 
 
 def reset_supabase_client() -> None:
-	"""Reset the cached client instance.
-
-	This utility is intended for tests and controlled runtime reinitialization.
-	"""
+	"""Reset the cached client instance."""
 
 	global _supabase_client
 

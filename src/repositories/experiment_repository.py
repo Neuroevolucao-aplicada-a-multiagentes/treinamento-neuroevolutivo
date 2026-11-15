@@ -22,12 +22,7 @@ class ExperimentRepository:
     _UNSET = object()
 
     def __init__(self, client: Client | None = None) -> None:
-        """Initialize the repository with a Supabase client.
-
-        Args:
-            client: Optional Supabase client instance for dependency injection
-                in tests. When not provided, the shared project client is used.
-        """
+        """Initialize the repository with a Supabase client."""
 
         self._client = client if client is not None else get_supabase_client()
 
@@ -40,23 +35,7 @@ class ExperimentRepository:
         status: str = "draft",
         metadata: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Create an Experiment record and return the persisted row.
-
-        Args:
-            name: Unique experiment name.
-            description: Optional experiment description.
-            environment: Optional environment label.
-            status: Initial experiment status.
-            metadata: Optional metadata payload.
-
-        Returns:
-            The created experiment row.
-
-        Raises:
-            ExperimentRepositoryError: If the operation fails or the inserted
-                row cannot be retrieved.
-            ValueError: If name is empty or only whitespace.
-        """
+        """Create an Experiment record and return the persisted row."""
 
         normalized_name = name.strip()
         if not normalized_name:
@@ -97,17 +76,7 @@ class ExperimentRepository:
         return created
 
     def get_by_id(self, experiment_id: UUID | str) -> dict[str, Any] | None:
-        """Fetch one Experiment by its UUID identifier.
-
-        Args:
-            experiment_id: Experiment UUID.
-
-        Returns:
-            The experiment row when found, otherwise None.
-
-        Raises:
-            ExperimentRepositoryError: If the read operation fails.
-        """
+        """Fetch one Experiment by its UUID identifier."""
 
         identifier = str(experiment_id)
 
@@ -126,17 +95,7 @@ class ExperimentRepository:
         return self._first_or_none(response.data)
 
     def get_by_name(self, name: str) -> dict[str, Any] | None:
-        """Fetch one Experiment by its unique name.
-
-        Args:
-            name: Experiment name.
-
-        Returns:
-            The experiment row when found, otherwise None.
-
-        Raises:
-            ExperimentRepositoryError: If the read operation fails.
-        """
+        """Fetch one Experiment by its unique name."""
 
         try:
             response = (
@@ -153,14 +112,7 @@ class ExperimentRepository:
         return self._first_or_none(response.data)
 
     def list_all(self) -> list[dict[str, Any]]:
-        """List all Experiment rows ordered by creation timestamp.
-
-        Returns:
-            A list of experiment rows.
-
-        Raises:
-            ExperimentRepositoryError: If the read operation fails.
-        """
+        """List all Experiment rows ordered by creation timestamp."""
 
         try:
             response = (
@@ -186,24 +138,7 @@ class ExperimentRepository:
         status: str | object = _UNSET,
         metadata: Mapping[str, Any] | None | object = _UNSET,
     ) -> dict[str, Any] | None:
-        """Update an Experiment and return the updated row.
-
-        Args:
-            experiment_id: Experiment UUID.
-            name: Updated name.
-            description: Updated description.
-            environment: Updated environment.
-            status: Updated status.
-            metadata: Updated metadata.
-
-        Returns:
-            The updated experiment row when found, otherwise None.
-
-        Raises:
-            ValueError: If no update fields are provided.
-            ValueError: If name is provided but empty or only whitespace.
-            ExperimentRepositoryError: If the update operation fails.
-        """
+        """Update an Experiment and return the updated row."""
 
         identifier = str(experiment_id)
         payload: dict[str, Any] = {}
@@ -249,17 +184,7 @@ class ExperimentRepository:
         return self.get_by_id(identifier)
 
     def delete(self, experiment_id: UUID | str) -> bool:
-        """Delete an Experiment by UUID.
-
-        Args:
-            experiment_id: Experiment UUID.
-
-        Returns:
-            True when a record existed and was deleted, otherwise False.
-
-        Raises:
-            ExperimentRepositoryError: If the delete operation fails.
-        """
+        """Delete an Experiment by UUID."""
 
         try:
             identifier = str(experiment_id)

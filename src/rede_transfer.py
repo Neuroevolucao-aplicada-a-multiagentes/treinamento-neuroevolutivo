@@ -1,15 +1,7 @@
-"""
-Rede neural feedforward para controle de agente.
+"""Rede do controlador: MLP 16-32-16-2, ocultas com tanh e saida linear.
 
-Decisoes de arquitetura (apos diagnostico):
-- 2 camadas escondidas com tanh (estavel para neuroevolucao)
-- SAIDA LINEAR (sem tanh) - permite qualquer direcao/magnitude
-- Inicializacao Xavier (ganho 1.0) - evita saturar tanh no inicio
-- Atenuacao moderada dos pesos para inputs de raycast (0.3) -
-  raycasts ficam irrelevantes na fase 1 (sem obstaculos),
-  mas precisam estar disponiveis para fases 3+
-- Crossover por NEURONIO (coluna) - preserva funcionalidades aprendidas
-- Clip de pesos para evitar explosao apos varias geracoes de mutacao
+Pesos iniciais com desvio 1/sqrt(n) e os dos raycasts atenuados (x0,3). O
+cruzamento herda neuronios inteiros, e a mutacao limita os pesos a [-4, 4].
 """
 import os
 import numpy as np

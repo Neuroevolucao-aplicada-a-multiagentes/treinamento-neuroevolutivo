@@ -1,9 +1,4 @@
-"""Fase 4 — manobras apertadas: 4 obstaculos no caminho com offset pequeno.
-
-Dimensao nova vs fase 3: DENSIDADE de obstaculos e PRECISAO de manobra.
-Mais obstaculos no caminho (4 contra 2) e offset menor (22 contra 35) —
-o agente precisa fazer desvios mais agudos sem perder velocidade.
-"""
+"""Fase 4: quatro obstaculos no caminho, com deslocamento pequeno."""
 from simulador import CenarioConfig
 
 CONFIG = CenarioConfig(

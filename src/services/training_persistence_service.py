@@ -39,8 +39,6 @@ class TrainingPersistenceService:
         self.run_config_snapshot_repository = (
             run_config_snapshot_repository or RunConfigSnapshotRepository()
         )
-        # Kept for forward-compatible use when individual-level evaluation
-        # events are available in the training flow.
         self.individual_evaluation_repository = (
             individual_evaluation_repository or IndividualEvaluationRepository()
         )

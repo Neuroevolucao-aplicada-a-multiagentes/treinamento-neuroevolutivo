@@ -1,12 +1,7 @@
 """Substituto do TrainingPersistenceService para treinar sem o Supabase.
 
-Mesma interface publica, sem nenhuma chamada de rede. Os artefatos locais da
-run (metricas.csv, melhor_rede.npz e graficos) continuam sendo gravados pelo
-Logger, entao nada do resultado se perde: so deixa de existir a copia no banco.
-
-Existe para lotes longos, como multi-seed e ablacao. O servico real interrompe
-o treino quando nao consegue gravar o checkpoint, entao uma oscilacao de rede
-no meio de uma run de varias horas perde a run inteira.
+Mesma interface publica, sem chamadas de rede; os arquivos locais da run
+continuam sendo gravados pelo Logger.
 """
 
 from __future__ import annotations

@@ -1,32 +1,21 @@
 """Avalia redes treinadas no mesmo conjunto fixo de cenarios.
 
-A aptidao registrada durante o treino nao serve para comparar redes: cada
-geracao sorteia poucos cenarios novos e a entrega media oscila dezenas de
-pontos de uma geracao para outra. Aqui todas as redes enfrentam exatamente os
-mesmos cenarios, gerados por sementes fixas e distintas das usadas no treino,
-e a comparacao entre duas redes e pareada cenario a cenario.
+Todas as redes enfrentam os mesmos cenarios, gerados por sementes fixas e
+distintas das do treino, e a comparacao entre duas redes e pareada.
 
 Ambientes:
-    fase5       o armazem da fase 5, com obstaculos e robos moveis
-    corredores  a topologia de corredores da fase 6, nunca vista no treino
+    fase5       armazem da fase 5, com obstaculos e robos moveis
+    corredores  topologia de corredores, fora do treino
 
 Uso:
     python src/avaliar_checkpoints.py melhor_rede_fase5.npz "runs/Fase_5_*2026-10-13*/melhor_rede.npz"
     python src/avaliar_checkpoints.py --cenarios 60 --ambientes corredores melhor_rede_fase5.npz
     python src/avaliar_checkpoints.py melhor_rede_fase5.npz campos campos:2.0:0.4
 
-"campos" no lugar de um arquivo avalia o controlador de referencia por campos
-potenciais; "campos:G:A" fixa o ganho de repulsao G e o alcance A.
-
---ruido S soma ruido gaussiano de desvio S as leituras dos raios (que vao de 0
-a 1, fracao do alcance do sensor), para medir a robustez a sensores imperfeitos.
-
---sem-eliminacao deixa o agente seguir depois de qualquer numero de colisoes,
-como na operacao continua do armazem 3D. Em todos os modos e medido o tempo
-encalhado: em contato com um obstaculo sem avancar, o mesmo criterio que
-aciona a camada de recuperacao do 3D.
-
-A primeira rede da lista e a referencia das comparacoes pareadas.
+"campos" avalia o controlador por campos potenciais; "campos:G:A" fixa o ganho
+de repulsao G e o alcance A. --ruido S soma ruido gaussiano de desvio S aos
+raios e --sem-eliminacao ignora o limite de colisoes. A primeira rede da lista
+e a referencia das comparacoes pareadas.
 """
 
 from __future__ import annotations
@@ -46,8 +35,8 @@ _RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 AMBIENTES = ("fase5", "corredores")
 
-# Encalhe, como na camada de recuperacao do armazem 3D: em contato e andando
-# menos de 20% do deslocamento maximo por passo, por pelo menos 0,5 s.
+# Encalhe: em contato e andando menos de 20% do passo maximo por 0,5 s,
+# o mesmo criterio da camada de recuperacao do armazem 3D.
 FRACAO_AVANCO = 0.2
 TEMPO_ATE_ENCALHE = 0.5
 
@@ -73,8 +62,7 @@ def _rotulo(caminho: str) -> str:
     pasta = os.path.dirname(os.path.abspath(caminho))
     config_txt = os.path.join(pasta, "config.txt")
     if os.path.basename(pasta).startswith("Fase_") and os.path.exists(config_txt):
-        # Runs com rotulo (sem curriculo, busca corrigida...) tem um segundo
-        # parenteses no nome da pasta; ele distingue runs de mesma semente.
+        # Runs com rotulo tem um segundo parenteses no nome da pasta.
         grupos = re.findall(r"\(([^)]*)\)", os.path.basename(pasta))
         variante = grupos[-1].replace("_", " ") + " " if len(grupos) > 1 else ""
         with open(config_txt, encoding="utf-8") as f:

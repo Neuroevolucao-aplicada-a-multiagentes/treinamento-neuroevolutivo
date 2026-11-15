@@ -1,11 +1,4 @@
-"""Fase 4.1 — mix caminho + livres: cenario mais realista.
-
-Dimensao nova vs fase 4: obstaculos NAO PREVISIVEIS no caminho.
-3 obstaculos seguem o padrao do caminho (forcam desvio) +
-2 obstaculos espalhados livremente pelo mapa (podem ou nao estar na rota).
-O agente precisa generalizar: nem todo obstaculo esta no caminho ideal,
-mas alguns ainda estao.
-"""
+"""Fase 4.1: tres obstaculos no caminho e dois espalhados pelo mapa."""
 from simulador import CenarioConfig
 
 CONFIG = CenarioConfig(

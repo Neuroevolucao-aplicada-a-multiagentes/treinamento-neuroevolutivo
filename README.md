@@ -4,7 +4,14 @@
 > Centro Universitário do Instituto Mauá de Tecnologia (IMT)
 
 **Autores:** Arthur Baptista Falzetta, Enrico Orlando Bernardi de Oliveira, Lucas Ribeiro Giaquinto, Matheus Nogami Weber, Murilo Sucupira Sacchi 
-**Orientação:** Prof. Milkes Yone Alvarenga
+**Orientação:** Profa. Dra. Milkes Yone Alvarenga (orientadora); Prof. Dr. Isaac Jesus da Silva (coorientador)
+
+**Repositórios do projeto:**
+
+- **treinamento-neuroevolutivo** (este): treino da rede por algoritmo genético
+- [armazem-2d](https://github.com/Neuroevolucao-aplicada-a-multiagentes/armazem-2d): armazém bidimensional em Pygame
+- [armazem-3d](https://github.com/Neuroevolucao-aplicada-a-multiagentes/armazem-3d): armazém tridimensional em Godot
+- [dashboard-analitico](https://github.com/Neuroevolucao-aplicada-a-multiagentes/dashboard-analitico): painel de resultados em Streamlit
 
 ---
 

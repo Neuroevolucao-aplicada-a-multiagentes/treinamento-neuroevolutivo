@@ -1,8 +1,6 @@
 """Exporta do Supabase os pesos do melhor individuo de uma fase para o Godot.
 
-Roda na maquina de treino, antes da apresentacao, e nao dentro do jogo. Assim
-a chave service_role nunca entra no executavel do Godot e a demonstracao nao
-depende de rede: o Godot le apenas o JSON gerado aqui.
+Roda fora do jogo: o Godot le apenas o JSON gerado aqui, sem acesso ao banco.
 
 Caminho dos dados no banco:
     core.run (phase_code, status completed)
@@ -55,10 +53,7 @@ def _meta_como_lista(meta: Any) -> list[int]:
 
 
 def genoma_para_godot(genoma: dict[str, Any], origem: dict[str, Any]) -> dict[str, Any]:
-    """Valida o genoma gravado no banco e converte para o formato do Godot.
-
-    O Godot le apenas w1..b3; meta e origem viajam junto para rastreabilidade.
-    """
+    """Valida o genoma gravado no banco e converte para o formato do Godot."""
     faltando = [k for k in ("meta", "w1", "w2", "w3", "b1", "b2", "b3") if k not in genoma]
     if faltando:
         raise ErroExportacao(f"genoma sem as chaves {faltando}")

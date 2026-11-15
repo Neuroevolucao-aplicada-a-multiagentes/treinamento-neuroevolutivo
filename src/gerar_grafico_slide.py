@@ -1,15 +1,8 @@
-"""Gera um grafico LIMPO para o slide de "Curva de aprendizado" da apresentacao.
-
-Recorta APENAS os 2 paineis mais importantes:
-  1. Fitness medio ao longo das geracoes
-  2. Taxa de entrega ao longo das geracoes
-
-Diferente do resultados.png (9 paineis, denso), este e otimizado pra
-apresentacao: fontes grandes, cores chamativas, layout 2x1, sem grid pesado.
+"""Grafico da curva de aprendizado para a apresentacao: aptidao media e taxa de entrega.
 
 Uso:
     python gerar_grafico_slide.py <pasta_da_run>
-    python gerar_grafico_slide.py --melhor   (auto-detecta a melhor run)
+    python gerar_grafico_slide.py --melhor
 """
 
 import argparse
@@ -101,7 +94,7 @@ def gerar_para_slide(run_dir: str, out_path: str = None, titulo: str = None):
 
 
 def melhor_run() -> str:
-    """Escolhe a run com mais geracoes E maior taxa de entrega final."""
+    """Escolhe a run com mais geracoes e maior taxa de entrega final."""
     candidatos = []
     for d in glob.glob("runs/*/"):
         csv = os.path.join(d, "metricas.csv")

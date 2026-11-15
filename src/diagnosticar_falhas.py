@@ -1,17 +1,13 @@
 """Classifica, cenario a cenario, por que um controlador nao entregou.
 
-Usa os mesmos cenarios fixos de avaliar_checkpoints.py. Para cada cenario em
-que o agente nao entrega, olha os ultimos segundos da trajetoria e o alvo que
-ele perseguia no fim do episodio:
+Usa os cenarios fixos de avaliar_checkpoints.py e olha os ultimos segundos de
+cada cenario sem entrega:
 
     eliminado           atingiu o limite de colisoes
     preso atras         quase parado, com uma parede entre ele e o alvo
     preso com visada    quase parado, sem parede entre ele e o alvo
     vagando atras       ainda se movendo, com uma parede entre ele e o alvo
     vagando com visada  ainda se movendo, sem parede entre ele e o alvo
-
-"Atras" e a situacao de minimo local dos metodos reativos: o caminho direto
-para o alvo esta bloqueado e e preciso afastar-se dele para contornar.
 
 Uso:
     python src/diagnosticar_falhas.py melhor_rede_fase5.npz campos

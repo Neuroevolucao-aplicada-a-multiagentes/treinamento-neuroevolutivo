@@ -78,8 +78,7 @@ class Logger:
     def copiar_para(self, destino: str):
         if not os.path.exists(self.checkpoint_path):
             return
-        # o checkpoint da fase nao esta versionado: sem esta copia, sobrescrever
-        # por engano significa perder dias de treino
+        # O checkpoint da fase nao e versionado: guarda o anterior antes de sobrescrever.
         if os.path.exists(destino):
             backup = destino + ".bak"
             shutil.copyfile(destino, backup)

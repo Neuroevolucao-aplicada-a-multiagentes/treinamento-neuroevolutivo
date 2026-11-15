@@ -1,10 +1,4 @@
-"""Fase 4.2 — armazem real: 6 obstaculos espalhados, sem padrao.
-
-Dimensao nova vs fase 4.1: sem garantia de obstaculo no caminho ideal.
-Agora a rede precisa fazer o que um robo real faz: navegar em um armazem
-com prateleiras distribuidas. Algumas rotas serao retas (sorte), outras
-exigirao varios desvios encadeados.
-"""
+"""Fase 4.2: seis obstaculos espalhados, sem garantia de estarem no caminho."""
 from simulador import CenarioConfig
 
 CONFIG = CenarioConfig(

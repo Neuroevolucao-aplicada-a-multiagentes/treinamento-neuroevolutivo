@@ -1,14 +1,9 @@
-"""Gera o fixture de referencia do contrato de I/O da rede.
+"""Gera tests/golden_vectors.json, a referencia do contrato de entrada e saida.
 
-Constroi um mundo totalmente deterministico (obstaculos e robos fixos,
-sem RNG), calcula o vetor de 16 entradas e a saida da rede para varios
-estados do agente, e grava tudo em tests/golden_vectors.json.
+Para estados fixos de um mundo deterministico, grava as 16 entradas e a saida
+da rede. A implementacao em GDScript precisa reproduzir os mesmos valores.
 
-O arquivo serve para validar qualquer reimplementacao do controlador em
-outra linguagem (GDScript no Godot): dado o mesmo mundo e o mesmo estado,
-a implementacao tem de reproduzir os mesmos 16 inputs e a mesma saida.
-
-Rodar: python src/gerar_golden_vectors.py
+Uso: python src/gerar_golden_vectors.py
 """
 import json
 import os

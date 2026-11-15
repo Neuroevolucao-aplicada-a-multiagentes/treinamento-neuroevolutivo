@@ -22,12 +22,7 @@ class RunConfigSnapshotRepository:
     _UNSET = object()
 
     def __init__(self, client: Client | None = None) -> None:
-        """Initialize the repository with a Supabase client.
-
-        Args:
-            client: Optional Supabase client instance for dependency injection
-                in tests. When not provided, the shared project client is used.
-        """
+        """Initialize the repository with a Supabase client."""
 
         self._client = client if client is not None else get_supabase_client()
 
@@ -38,22 +33,7 @@ class RunConfigSnapshotRepository:
         config: Mapping[str, Any],
         config_hash: str | None = None,
     ) -> dict[str, Any]:
-        """Create a run config snapshot and return the persisted row.
-
-        Args:
-            run_id: Related run UUID.
-            config: Snapshot configuration payload.
-            config_hash: Optional hash for the configuration.
-
-        Returns:
-            The created snapshot row.
-
-        Raises:
-            TypeError: If run_id or config_hash has an invalid type.
-            ValueError: If run_id, config, or config_hash are invalid.
-            RunConfigSnapshotRepositoryError: If the operation fails or the
-                inserted row cannot be retrieved.
-        """
+        """Create a run config snapshot and return the persisted row."""
 
         normalized_run_id = self._normalize_uuid_like(run_id, "run_id")
         normalized_config_hash = self._normalize_text_or_none(config_hash, "config_hash")
@@ -93,19 +73,7 @@ class RunConfigSnapshotRepository:
         return created
 
     def get_by_id(self, snapshot_id: UUID | str) -> dict[str, Any] | None:
-        """Fetch one run config snapshot by its UUID identifier.
-
-        Args:
-            snapshot_id: Snapshot UUID.
-
-        Returns:
-            The snapshot row when found, otherwise None.
-
-        Raises:
-            TypeError: If snapshot_id has an invalid type.
-            ValueError: If snapshot_id is empty or invalid.
-            RunConfigSnapshotRepositoryError: If the read operation fails.
-        """
+        """Fetch one run config snapshot by its UUID identifier."""
 
         identifier = self._normalize_uuid_like(snapshot_id, "snapshot_id")
 
@@ -126,19 +94,7 @@ class RunConfigSnapshotRepository:
         return self._first_or_none(response.data)
 
     def get_by_run(self, run_id: UUID | str) -> dict[str, Any] | None:
-        """Fetch the snapshot associated with a run.
-
-        Args:
-            run_id: Run UUID.
-
-        Returns:
-            The snapshot row when found, otherwise None.
-
-        Raises:
-            TypeError: If run_id has an invalid type.
-            ValueError: If run_id is empty or invalid.
-            RunConfigSnapshotRepositoryError: If the read operation fails.
-        """
+        """Fetch the snapshot associated with a run."""
 
         identifier = self._normalize_uuid_like(run_id, "run_id")
 
@@ -159,14 +115,7 @@ class RunConfigSnapshotRepository:
         return self._first_or_none(response.data)
 
     def list_all(self) -> list[dict[str, Any]]:
-        """List all run config snapshots ordered by creation timestamp.
-
-        Returns:
-            A list of snapshot rows.
-
-        Raises:
-            RunConfigSnapshotRepositoryError: If the read operation fails.
-        """
+        """List all run config snapshots ordered by creation timestamp."""
 
         try:
             response = (
@@ -192,22 +141,7 @@ class RunConfigSnapshotRepository:
         config: Mapping[str, Any] | object = _UNSET,
         config_hash: str | None | object = _UNSET,
     ) -> dict[str, Any] | None:
-        """Update a run config snapshot and return the updated row.
-
-        Args:
-            snapshot_id: Snapshot UUID.
-            run_id: Updated run UUID.
-            config: Updated snapshot configuration payload.
-            config_hash: Updated configuration hash.
-
-        Returns:
-            The updated snapshot row when found, otherwise None.
-
-        Raises:
-            ValueError: If no update fields are provided.
-            TypeError: If a provided field has an invalid type.
-            RunConfigSnapshotRepositoryError: If the update operation fails.
-        """
+        """Update a run config snapshot and return the updated row."""
 
         identifier = self._normalize_uuid_like(snapshot_id, "snapshot_id")
         payload: dict[str, Any] = {}
@@ -244,19 +178,7 @@ class RunConfigSnapshotRepository:
         return self.get_by_id(identifier)
 
     def delete(self, snapshot_id: UUID | str) -> bool:
-        """Delete a run config snapshot by UUID.
-
-        Args:
-            snapshot_id: Snapshot UUID.
-
-        Returns:
-            True when a record existed and was deleted, otherwise False.
-
-        Raises:
-            TypeError: If snapshot_id has an invalid type.
-            ValueError: If snapshot_id is empty or invalid.
-            RunConfigSnapshotRepositoryError: If the delete operation fails.
-        """
+        """Delete a run config snapshot by UUID."""
 
         identifier = self._normalize_uuid_like(snapshot_id, "snapshot_id")
 

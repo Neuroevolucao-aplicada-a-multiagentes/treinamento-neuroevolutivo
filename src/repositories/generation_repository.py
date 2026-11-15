@@ -25,12 +25,7 @@ class GenerationRepository:
     _UNSET = object()
 
     def __init__(self, client: Client | None = None) -> None:
-        """Initialize the repository with a Supabase client.
-
-        Args:
-            client: Optional Supabase client instance for dependency injection
-                in tests. When not provided, the shared project client is used.
-        """
+        """Initialize the repository with a Supabase client."""
 
         self._client = client if client is not None else get_supabase_client()
 
@@ -48,30 +43,7 @@ class GenerationRepository:
         finished_at: str | None = None,
         metrics: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Create a Generation record and return the persisted row.
-
-        Args:
-            run_id: Related run UUID.
-            generation_number: Generation sequence number.
-            population_size: Population size for the generation.
-            best_fitness: Optional best fitness value.
-            average_fitness: Optional average fitness value.
-            worst_fitness: Optional worst fitness value.
-            median_fitness: Optional median fitness value.
-            started_at: Optional generation start timestamp.
-            finished_at: Optional generation end timestamp.
-            metrics: Optional metrics payload.
-
-        Returns:
-            The created generation row.
-
-        Raises:
-            ValueError: If generation_number or population_size is invalid.
-            TypeError: If run_id, numeric fields, timestamps, or JSON payloads
-                have an invalid type.
-            GenerationRepositoryError: If the operation fails or the inserted
-                row cannot be retrieved.
-        """
+        """Create a Generation record and return the persisted row."""
 
         normalized_run_id = self._normalize_uuid_like(run_id, "run_id")
         self._validate_optional_timestamp(started_at, "started_at")
@@ -132,17 +104,7 @@ class GenerationRepository:
         return created
 
     def get_by_id(self, generation_id: UUID | str) -> dict[str, Any] | None:
-        """Fetch one Generation by its UUID identifier.
-
-        Args:
-            generation_id: Generation UUID.
-
-        Returns:
-            The generation row when found, otherwise None.
-
-        Raises:
-            GenerationRepositoryError: If the read operation fails.
-        """
+        """Fetch one Generation by its UUID identifier."""
 
         identifier = self._normalize_uuid_like(generation_id, "generation_id")
 
@@ -161,17 +123,7 @@ class GenerationRepository:
         return self._first_or_none(response.data)
 
     def list_by_run(self, run_id: UUID | str) -> list[dict[str, Any]]:
-        """List Generation rows associated with a run.
-
-        Args:
-            run_id: Run UUID.
-
-        Returns:
-            A list of generation rows ordered by generation number.
-
-        Raises:
-            GenerationRepositoryError: If the read operation fails.
-        """
+        """List Generation rows associated with a run."""
 
         try:
             response = (
@@ -189,14 +141,7 @@ class GenerationRepository:
         return [row for row in rows if isinstance(row, dict)]
 
     def list_all(self) -> list[dict[str, Any]]:
-        """List all Generation rows ordered by creation timestamp.
-
-        Returns:
-            A list of generation rows.
-
-        Raises:
-            GenerationRepositoryError: If the read operation fails.
-        """
+        """List all Generation rows ordered by creation timestamp."""
 
         try:
             response = (
@@ -227,29 +172,7 @@ class GenerationRepository:
         finished_at: str | None | object = _UNSET,
         metrics: Mapping[str, Any] | None | object = _UNSET,
     ) -> dict[str, Any] | None:
-        """Update a Generation and return the updated row.
-
-        Args:
-            generation_id: Generation UUID.
-            run_id: Updated run UUID.
-            generation_number: Updated generation number.
-            population_size: Updated population size.
-            best_fitness: Updated best fitness value.
-            average_fitness: Updated average fitness value.
-            worst_fitness: Updated worst fitness value.
-            median_fitness: Updated median fitness value.
-            started_at: Updated start timestamp.
-            finished_at: Updated finish timestamp.
-            metrics: Updated metrics payload.
-
-        Returns:
-            The updated generation row when found, otherwise None.
-
-        Raises:
-            ValueError: If no update fields are provided.
-            TypeError: If a provided field has an invalid type.
-            GenerationRepositoryError: If the update operation fails.
-        """
+        """Update a Generation and return the updated row."""
 
         identifier = self._normalize_uuid_like(generation_id, "generation_id")
         payload: dict[str, Any] = {}
@@ -314,17 +237,7 @@ class GenerationRepository:
         return self.get_by_id(identifier)
 
     def delete(self, generation_id: UUID | str) -> bool:
-        """Delete a Generation by UUID.
-
-        Args:
-            generation_id: Generation UUID.
-
-        Returns:
-            True when a record existed and was deleted, otherwise False.
-
-        Raises:
-            GenerationRepositoryError: If the delete operation fails.
-        """
+        """Delete a Generation by UUID."""
 
         try:
             identifier = self._normalize_uuid_like(generation_id, "generation_id")
