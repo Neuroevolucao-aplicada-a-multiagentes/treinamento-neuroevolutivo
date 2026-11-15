@@ -18,6 +18,14 @@ Uso:
 "campos" no lugar de um arquivo avalia o controlador de referencia por campos
 potenciais; "campos:G:A" fixa o ganho de repulsao G e o alcance A.
 
+--ruido S soma ruido gaussiano de desvio S as leituras dos raios (que vao de 0
+a 1, fracao do alcance do sensor), para medir a robustez a sensores imperfeitos.
+
+--sem-eliminacao deixa o agente seguir depois de qualquer numero de colisoes,
+como na operacao continua do armazem 3D. Em todos os modos e medido o tempo
+encalhado: em contato com um obstaculo sem avancar, o mesmo criterio que
+aciona a camada de recuperacao do 3D.
+
 A primeira rede da lista e a referencia das comparacoes pareadas.
 """
 
@@ -29,6 +37,7 @@ import glob
 import math
 import os
 import random
+import re
 import sys
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
@@ -36,6 +45,11 @@ from datetime import datetime
 _RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 AMBIENTES = ("fase5", "corredores")
+
+# Encalhe, como na camada de recuperacao do armazem 3D: em contato e andando
+# menos de 20% do deslocamento maximo por passo, por pelo menos 0,5 s.
+FRACAO_AVANCO = 0.2
+TEMPO_ATE_ENCALHE = 0.5
 
 
 def _config(ambiente: str):
@@ -59,10 +73,14 @@ def _rotulo(caminho: str) -> str:
     pasta = os.path.dirname(os.path.abspath(caminho))
     config_txt = os.path.join(pasta, "config.txt")
     if os.path.basename(pasta).startswith("Fase_") and os.path.exists(config_txt):
+        # Runs com rotulo (sem curriculo, busca corrigida...) tem um segundo
+        # parenteses no nome da pasta; ele distingue runs de mesma semente.
+        grupos = re.findall(r"\(([^)]*)\)", os.path.basename(pasta))
+        variante = grupos[-1].replace("_", " ") + " " if len(grupos) > 1 else ""
         with open(config_txt, encoding="utf-8") as f:
             for linha in f:
                 if linha.startswith("seed ="):
-                    return f"semente {linha.split('=', 1)[1].strip()}"
+                    return f"{variante}semente {linha.split('=', 1)[1].strip()}"
         return os.path.basename(pasta)
     return os.path.splitext(os.path.basename(caminho))[0]
 
@@ -79,27 +97,74 @@ def _controlador(caminho: str):
     return carregar_rede_base(caminho, input_size=16)
 
 
-def _avaliar(tarefa: tuple[str, str, int, int]) -> dict:
+class _ComRuido:
+    """Entrega ao controlador as leituras dos raios com ruido gaussiano."""
+
+    def __init__(self, controlador, sigma: float, semente: int):
+        import numpy as np
+        self.controlador = controlador
+        self.sigma = sigma
+        self.rng = np.random.default_rng(semente)
+
+    def copy(self) -> "_ComRuido":
+        return self
+
+    def forward(self, x):
+        import numpy as np
+        x = np.array(x, dtype=np.float32)
+        x[8:16] = np.clip(x[8:16] + self.rng.normal(0.0, self.sigma, 8), 0.0, 1.0)
+        return self.controlador.forward(x)
+
+
+def _avaliar(tarefa: tuple[str, str, int, int, float, bool]) -> dict:
     """Roda uma rede em n cenarios de um ambiente. Executa num processo proprio."""
-    caminho, ambiente, n, semente_base = tarefa
+    caminho, ambiente, n, semente_base, ruido, sem_eliminacao = tarefa
     os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
     import pygame
-    from simulador import Agente, Ambiente, rodar_geracao
+    from simulador import VELOCIDADE, Agente, Ambiente, rodar_geracao
 
     cfg = _config(ambiente)
+    if sem_eliminacao:
+        cfg.max_colisoes_morte = 10**9
     rede = _controlador(caminho)
+    dt = 1.0 / 60.0
+    avanco_minimo = FRACAO_AVANCO * VELOCIDADE * dt
     por_cenario = []
     for k in range(n):
         amb = Ambiente(cfg, rng=random.Random(semente_base + k))
-        agente = Agente(rede.copy(), amb)
+        controlador = rede.copy()
+        if ruido > 0:
+            controlador = _ComRuido(controlador, ruido, semente_base + k)
+        agente = Agente(controlador, amb)
         agente.reset_estado()
         agente.pos = pygame.Vector2(amb.start_pos)
-        rodar_geracao([agente], amb, cfg)
+        estado = {"anterior": pygame.Vector2(agente.pos), "seguido": 0.0,
+                  "encalhado": 0.0, "encalhes": 0}
+
+        def medir_encalhe(passo, tempo):
+            if agente.entregou or agente.morto:
+                return False
+            parado = agente.pos.distance_to(estado["anterior"]) < avanco_minimo
+            estado["anterior"] = pygame.Vector2(agente.pos)
+            if agente.em_colisao and parado:
+                estado["seguido"] += dt
+                if estado["seguido"] >= TEMPO_ATE_ENCALHE:
+                    estado["encalhado"] += dt
+                    if estado["seguido"] - dt < TEMPO_ATE_ENCALHE:
+                        estado["encalhes"] += 1
+            else:
+                estado["seguido"] = 0.0
+            return False
+
+        rodar_geracao([agente], amb, cfg, dt_fixo=dt, on_step=medir_encalhe)
         por_cenario.append({
             "coletou": bool(agente.coletou),
             "entregou": bool(agente.entregou),
             "colisoes": int(agente.colisoes),
             "tempo_entrega": agente.tempo_entrega,
+            "encalhes": estado["encalhes"],
+            "tempo_encalhado": estado["encalhado"],
+            "termina_encalhado": not agente.entregou and estado["seguido"] >= TEMPO_ATE_ENCALHE,
         })
     return {"caminho": caminho, "ambiente": ambiente, "cenarios": por_cenario}
 
@@ -136,6 +201,9 @@ def _resumo(cenarios: list[dict]) -> dict:
         "coleta": sum(c["coletou"] for c in cenarios) / n,
         "colisoes_media": sum(c["colisoes"] for c in cenarios) / n,
         "tempo_entrega_medio": (sum(tempos) / len(tempos)) if tempos else None,
+        "encalhes_media": sum(c["encalhes"] for c in cenarios) / n,
+        "tempo_encalhado_medio": sum(c["tempo_encalhado"] for c in cenarios) / n,
+        "termina_encalhado": sum(c["termina_encalhado"] for c in cenarios) / n,
     }
 
 
@@ -159,6 +227,10 @@ def main() -> int:
     parser.add_argument("--ambientes", nargs="+", choices=AMBIENTES, default=list(AMBIENTES))
     parser.add_argument("--semente-base", type=int, default=9000,
                         help="cenario k usa a semente base+k; o treino usa outras sementes")
+    parser.add_argument("--ruido", type=float, default=0.0,
+                        help="desvio do ruido gaussiano nas leituras dos raios")
+    parser.add_argument("--sem-eliminacao", action="store_true",
+                        help="o agente nunca e retirado por excesso de colisoes")
     parser.add_argument("--processos", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     args = parser.parse_args()
 
@@ -167,10 +239,12 @@ def main() -> int:
         print("[avaliar] ERRO: nenhuma rede para avaliar")
         return 1
 
-    tarefas = [(r, a, args.cenarios, args.semente_base) for a in args.ambientes for r in redes]
+    tarefas = [(r, a, args.cenarios, args.semente_base, args.ruido, args.sem_eliminacao)
+               for a in args.ambientes for r in redes]
     print(f"[avaliar] {len(redes)} redes x {len(args.ambientes)} ambientes x "
           f"{args.cenarios} cenarios, sementes {args.semente_base} a "
-          f"{args.semente_base + args.cenarios - 1}")
+          f"{args.semente_base + args.cenarios - 1}, ruido nos raios {args.ruido}"
+          f"{', sem eliminacao' if args.sem_eliminacao else ''}")
     with ProcessPoolExecutor(max_workers=args.processos) as pool:
         resultados = list(pool.map(_avaliar, tarefas))
 
@@ -196,9 +270,12 @@ def main() -> int:
             print(f"{_rotulo(rede):<22} {r['entrega'] * 100:7.1f}% "
                   f"[{r['ic_baixo'] * 100:5.1f}, {r['ic_alto'] * 100:5.1f}] "
                   f"{r['coleta'] * 100:6.1f}% {r['colisoes_media']:9.1f} {tempo:>10}   {comparacao}")
+            print(f"{'':<22} encalhes {r['encalhes_media']:.2f} por cenario, "
+                  f"{r['tempo_encalhado_medio']:.1f} s encalhado, "
+                  f"termina encalhado em {r['termina_encalhado'] * 100:.0f}%")
             linhas_csv.append({
                 "rede": _rotulo(rede), "arquivo": rede if _eh_campos(rede) else os.path.relpath(rede, _RAIZ),
-                "ambiente": ambiente, **r,
+                "ambiente": ambiente, "ruido": args.ruido, "sem_eliminacao": args.sem_eliminacao, **r,
                 "so_rede_entregou": so_cand, "so_referencia_entregou": so_ref, "p_mcnemar": p,
             })
 

@@ -87,6 +87,14 @@ class CenarioConfig:
     # desenvolve comportamento de se desvencilhar.
     penalidade_colisao_continua: float = 0.0
 
+    # Folga dos obstaculos. A colisao so custa quando acontece, entao passar
+    # rente a um obstaculo vale o mesmo que passar longe dele. Com
+    # folga_minima > 0 (fracao do alcance do sensor), cada passo com o raio
+    # mais curto abaixo dela acumula exposicao, que conta na selecao como
+    # custo_folga segundos a mais de ciclo por segundo de contato pleno.
+    folga_minima: float = 0.0
+    custo_folga: float = 0.0
+
     # Layout em corredores: fileiras paralelas ao eixo x, separadas por
     # corredores e cortadas por corredores transversais. O gerador de
     # retangulos isolados nao produz essa topologia, que e a do armazem real.
@@ -131,20 +139,25 @@ def gerar_obstaculos_aleatorios(n: int, rng: random.Random,
 
 
 def gerar_obstaculos_no_caminho(segmentos: List[Tuple[pygame.Vector2, pygame.Vector2]],
-                                n_por_segmento: int,
+                                n_total: int,
                                 rng: random.Random,
                                 exclude_zones: List[Tuple[int, int, int]] = None,
                                 offset_perp: int = 40) -> List[pygame.Rect]:
     """Posiciona obstaculos PERTO do caminho start->pacote->entrega para forcar desvio.
 
-    Para cada segmento (origem, destino), n_por_segmento obstaculos sao colocados
-    em pontos ao longo do segmento, com deslocamento perpendicular aleatorio
+    Os n_total obstaculos sao repartidos entre os segmentos (origem, destino) e
+    colocados ao longo deles, com deslocamento perpendicular aleatorio
     (+/- offset_perp px) - o agente NAO consegue ir reto, mas sempre tem espaco
     para contornar por um dos lados.
 
+    Cada obstaculo e sorteado dentro da parte do segmento que fica fora das zonas
+    de exclusao das pontas. Posicoes fixas perto das pontas eram quase sempre
+    rejeitadas: a fase 4 pedia 4 obstaculos e recebia menos de 1 em media. O que
+    nao couber no seu segmento ainda e tentado no outro.
+
     Argumentos:
         segmentos: lista de pares (origem, destino) que definem o caminho ideal.
-        n_por_segmento: quantos obstaculos por trecho.
+        n_total: quantos obstaculos no caminho todo.
         rng: gerador de aleatorios para reprodutibilidade.
         exclude_zones: lista de (cx, cy, raio) que nao podem ter obstaculo em cima.
         offset_perp: deslocamento maximo perpendicular ao segmento (px).
@@ -152,68 +165,75 @@ def gerar_obstaculos_no_caminho(segmentos: List[Tuple[pygame.Vector2, pygame.Vec
     obstaculos: List[pygame.Rect] = []
     exclude_zones = exclude_zones or []
     margem_borda = 50
+    # Distancia minima das pontas: maior zona de exclusao (60) + meio obstaculo
+    # (ate 50) + folga da checagem (15).
+    margem_pontas = 125
 
-    for origem, destino in segmentos:
+    def tentar(origem, destino, t_min, t_max, tentativas) -> bool:
         dx = destino.x - origem.x
         dy = destino.y - origem.y
         comprimento = math.sqrt(dx * dx + dy * dy)
+        perp_x, perp_y = -dy / comprimento, dx / comprimento
+        for _ in range(tentativas):
+            t_real = rng.uniform(t_min, t_max)
+            offset = rng.uniform(-offset_perp, offset_perp)
+            if abs(offset) < 12:
+                offset = 12 * (1 if offset >= 0 else -1)
+
+            cx = origem.x + dx * t_real + perp_x * offset
+            cy = origem.y + dy * t_real + perp_y * offset
+
+            w = rng.randint(45, 75)
+            h = rng.randint(55, 100)
+            x = int(cx - w / 2)
+            y = int(cy - h / 2)
+
+            if x < margem_borda or x + w > LARGURA - margem_borda:
+                continue
+            if y < margem_borda or y + h > ALTURA - margem_borda:
+                continue
+
+            rect = pygame.Rect(x, y, w, h)
+            rect_check = rect.inflate(30, 30)
+
+            raio_obs = max(w, h) / 2
+            cx_obs, cy_obs = rect.centerx, rect.centery
+            if any(math.sqrt((cx_obs - zx) ** 2 + (cy_obs - zy) ** 2) < zr + raio_obs + 15
+                   for zx, zy, zr in exclude_zones):
+                continue
+            if any(rect_check.colliderect(outro.inflate(25, 25)) for outro in obstaculos):
+                continue
+
+            obstaculos.append(rect)
+            return True
+        return False
+
+    def trecho_livre(origem, destino):
+        comprimento = (destino - origem).length()
         if comprimento < 50:
+            return None
+        t_min = min(0.5, margem_pontas / comprimento)
+        return t_min, 1.0 - t_min
+
+    base, resto = divmod(n_total, max(len(segmentos), 1))
+    faltam = 0
+    for i, (origem, destino) in enumerate(segmentos):
+        cota = base + (1 if i < resto else 0)
+        trecho = trecho_livre(origem, destino)
+        if trecho is None:
+            faltam += cota
             continue
-        ux, uy = dx / comprimento, dy / comprimento
-        perp_x, perp_y = -uy, ux
+        t_min, t_max = trecho
+        # Cada obstaculo tem sua faixa do trecho, para nao se amontoarem.
+        passo = (t_max - t_min) / max(cota, 1)
+        for k in range(cota):
+            if not tentar(origem, destino, t_min + k * passo, t_min + (k + 1) * passo, 40):
+                faltam += 1
 
-        if n_por_segmento == 1:
-            ts = [0.5]
-        else:
-            espaco = 0.6 / max(n_por_segmento - 1, 1)
-            inicio = 0.5 - 0.3
-            ts = [inicio + i * espaco for i in range(n_por_segmento)]
-
-        for t in ts:
-            colocado = False
-            for tentativa in range(40):
-                t_real = t + rng.uniform(-0.04, 0.04)
-                offset = rng.uniform(-offset_perp, offset_perp)
-                if abs(offset) < 12:
-                    offset = 12 * (1 if offset >= 0 else -1)
-
-                cx = origem.x + dx * t_real + perp_x * offset
-                cy = origem.y + dy * t_real + perp_y * offset
-
-                w = rng.randint(45, 75)
-                h = rng.randint(55, 100)
-                x = int(cx - w / 2)
-                y = int(cy - h / 2)
-
-                if x < margem_borda or x + w > LARGURA - margem_borda:
-                    continue
-                if y < margem_borda or y + h > ALTURA - margem_borda:
-                    continue
-
-                rect = pygame.Rect(x, y, w, h)
-                rect_check = rect.inflate(30, 30)
-
-                raio_obs = max(w, h) / 2
-                cx_obs, cy_obs = rect.centerx, rect.centery
-                colisao_zona = False
-                for zx, zy, zr in exclude_zones:
-                    dist = math.sqrt((cx_obs - zx) ** 2 + (cy_obs - zy) ** 2)
-                    if dist < zr + raio_obs + 15:
-                        colisao_zona = True
-                        break
-                if colisao_zona:
-                    continue
-
-                colisao_outro = False
-                for outro in obstaculos:
-                    if rect_check.colliderect(outro.inflate(25, 25)):
-                        colisao_outro = True
-                        break
-                if colisao_outro:
-                    continue
-
-                obstaculos.append(rect)
-                colocado = True
+    for _ in range(faltam):
+        for origem, destino in segmentos:
+            trecho = trecho_livre(origem, destino)
+            if trecho is not None and tentar(origem, destino, *trecho, 40):
                 break
 
     return obstaculos
@@ -358,9 +378,8 @@ class Ambiente:
                 ]
                 if cfg.objetivo_simples:
                     segmentos = [(self.start_pos, self.pacote_pos)]
-                n_por_seg = max(1, cfg.num_obstaculos // len(segmentos))
                 obstaculos_caminho = gerar_obstaculos_no_caminho(
-                    segmentos, n_por_seg, self.rng, zonas,
+                    segmentos, cfg.num_obstaculos, self.rng, zonas,
                     offset_perp=cfg.offset_obstaculo_perpendicular,
                 )
             elif (not cfg.obstaculos_no_caminho) and cfg.num_obstaculos > 0:
@@ -550,6 +569,11 @@ class Agente:
         self.melhor_dist_alvo: Optional[float] = None
         self.distancia_percorrida = 0.0
         self.passos_parado = 0
+        self.raio_min = 1.0
+        self.exposicao = 0.0
+        # Chave de selecao somada sobre os cenarios da geracao; None quando a
+        # geracao tem um cenario so e a chave sai do proprio episodio.
+        self.placar: Optional[tuple] = None
 
     def alvo_atual(self) -> pygame.Vector2:
         if self.ambiente.config.objetivo_simples:
@@ -586,6 +610,7 @@ class Agente:
             ang = heading + (i / NUM_RAYS) * 2 * math.pi
             dist = amb.raycast(self.pos, ang)
             rays.append(dist / ALCANCE_RAY)
+        self.raio_min = min(rays)
 
         inputs = [
             dir_alvo_x,
@@ -647,6 +672,11 @@ class Agente:
                 if self.colisoes >= cfg.max_colisoes_morte:
                     self.morto = True
                     return
+
+        if cfg.folga_minima > 0:
+            falta = max(0.0, 1.0 - self.raio_min / cfg.folga_minima)
+            self.exposicao += falta * falta * dt
+            self.fitness -= cfg.custo_folga * cfg.bonus_tempo_factor * falta * falta * dt
 
         dist_depois = self.pos.distance_to(alvo)
 
@@ -711,17 +741,22 @@ def criar_populacao(cfg: CenarioConfig, ambiente: Ambiente, rede_base, input_siz
     return agentes
 
 
-def nova_geracao(agentes: List[Agente], geracao: int, cfg: CenarioConfig, ambiente: Ambiente):
-    agentes.sort(
-        key=lambda a: (
-            int(a.entregou),
-            int(a.coletou),
-            -a.colisoes,
-            -(a.tempo_entrega if a.tempo_entrega is not None else 9999),
-            a.fitness,
-        ),
-        reverse=True,
+def chave_selecao(a: Agente) -> tuple:
+    """Ordem lexicografica da selecao: entrega, coleta, colisoes, tempo, aptidao."""
+    if a.placar is not None:
+        return a.placar
+    tempo = a.tempo_entrega if a.tempo_entrega is not None else 9999
+    return (
+        int(a.entregou),
+        int(a.coletou),
+        -a.colisoes,
+        -(tempo + a.ambiente.config.custo_folga * a.exposicao),
+        a.fitness,
     )
+
+
+def nova_geracao(agentes: List[Agente], geracao: int, cfg: CenarioConfig, ambiente: Ambiente):
+    agentes.sort(key=chave_selecao, reverse=True)
 
     taxa = max(cfg.taxa_mutacao_min, cfg.taxa_mutacao * (cfg.decaimento_mutacao ** geracao))
     forca = max(cfg.forca_mutacao_min, cfg.forca_mutacao * (cfg.decaimento_mutacao ** geracao))

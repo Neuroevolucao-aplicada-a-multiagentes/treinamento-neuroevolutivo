@@ -157,6 +157,10 @@ def _avaliar_em_cenarios(agentes, ambiente: Ambiente, cfg: CenarioConfig, dt: fl
         return rodar_geracao(agentes, ambiente, cfg, dt_fixo=dt)
 
     fits_acum = np.zeros(len(agentes), dtype=np.float64)
+    # Entregas, coletas, colisoes e soma dos tempos de entrega de cada agente.
+    # A selecao ordena por eles antes da aptidao; sem somar, valeriam so os do
+    # ultimo cenario, e os demais cenarios serviriam apenas de desempate.
+    contagens = np.zeros((len(agentes), 4), dtype=np.float64)
     resumos = []
     for _ in range(cfg.cenarios_por_geracao):
         for a in agentes:
@@ -168,9 +172,14 @@ def _avaliar_em_cenarios(agentes, ambiente: Ambiente, cfg: CenarioConfig, dt: fl
         resumos.append(resumo)
         for i, a in enumerate(agentes):
             fits_acum[i] += a.fitness
+            tempo = a.tempo_entrega if a.tempo_entrega is not None else cfg.duracao_geracao
+            tempo += cfg.custo_folga * a.exposicao
+            contagens[i] += (int(a.entregou), int(a.coletou), a.colisoes, tempo)
 
     for i, a in enumerate(agentes):
         a.fitness = fits_acum[i] / cfg.cenarios_por_geracao
+        entregas, coletas, colisoes, tempo_total = contagens[i]
+        a.placar = (int(entregas), int(coletas), -int(colisoes), -tempo_total, a.fitness)
 
     chaves = list(resumos[0].keys())
     chaves_int = {"coletas", "entregas", "colisoes", "mortos"}
@@ -623,6 +632,23 @@ if __name__ == "__main__":
                         help="Treina sem gravar no Supabase; resultados ficam so em runs/")
     parser.add_argument("--do-zero", action="store_true",
                         help="Ignora o checkpoint da fase anterior e parte de pesos aleatorios")
+    parser.add_argument("--entrada", default=None,
+                        help="Checkpoint de partida no lugar do da fase anterior")
+    parser.add_argument("--populacao", type=int, default=None)
+    parser.add_argument("--cenarios", type=int, default=None,
+                        help="Cenarios por geracao; mais cenarios reduzem o ruido da avaliacao")
+    parser.add_argument("--sem-eliminacao", action="store_true",
+                        help="Colisoes so penalizam, nunca eliminam o agente")
+    parser.add_argument("--penalidade-colisao", type=float, default=None,
+                        help="Custo de cada colisao na aptidao")
+    parser.add_argument("--penalidade-contato", type=float, default=None,
+                        help="Custo por segundo em contato com um obstaculo")
+    parser.add_argument("--folga", type=float, default=None,
+                        help="Folga minima dos obstaculos, fracao do alcance do sensor")
+    parser.add_argument("--custo-folga", type=float, default=2.0,
+                        help="Segundos de ciclo cobrados por segundo de contato pleno com --folga")
+    parser.add_argument("--rotulo", default=None,
+                        help="Texto acrescentado ao nome da run")
     args = parser.parse_args()
 
     import importlib
@@ -635,6 +661,23 @@ if __name__ == "__main__":
     if args.do_zero:
         cfg.checkpoint_entrada = None
         cfg.nome = f"{cfg.nome} (sem curriculo)"
+    if args.entrada is not None:
+        cfg.checkpoint_entrada = args.entrada
+    if args.populacao is not None:
+        cfg.num_agentes = args.populacao
+    if args.cenarios is not None:
+        cfg.cenarios_por_geracao = args.cenarios
+    if args.sem_eliminacao:
+        cfg.max_colisoes_morte = 10**9
+    if args.penalidade_colisao is not None:
+        cfg.penalidade_colisao = args.penalidade_colisao
+    if args.penalidade_contato is not None:
+        cfg.penalidade_colisao_continua = args.penalidade_contato
+    if args.folga is not None:
+        cfg.folga_minima = args.folga
+        cfg.custo_folga = args.custo_folga
+    if args.rotulo:
+        cfg.nome = f"{cfg.nome} ({args.rotulo})"
 
     treinar(cfg, modo="visual" if args.visual else "headless",
             salvar_checkpoint=args.salvar, persistir=not args.sem_banco)
